@@ -108,20 +108,57 @@ class Interpolator1DPCP(Interpolator1D):
         assert self.extrap_method_ == ExtrapMethod.FLAT
 
     def interpolate(self, x: float) -> float:
-        #TODO
-        pass
+        if self.length_ == 0:
+            return 0.0
+        if x <= self.axis1_[0]:
+            return self.values_[0]
+        if x > self.axis1_[-1]:
+            return self.values_[-1]
+        idx = np.searchsorted(self.axis1_, x, side='left')
+        return self.values_[idx]
 
     def integrate(self, start_x: float, end_x: float) -> float:
-        #TODO
-        pass
+        if start_x >= end_x:
+            return 0.0
+        breakpoints = [start_x]
+        for t in self.axis1_:
+            if start_x < t < end_x:
+                breakpoints.append(t)
+        breakpoints.append(end_x)
+        result = 0.0
+        for i in range(len(breakpoints) - 1):
+            val = self.interpolate(breakpoints[i] + 1e-15)
+            result += val * (breakpoints[i + 1] - breakpoints[i])
+        return result
 
     def gradient_wrt_ordinate(self, x: float) -> np.ndarray:
-        #TODO
-        pass
+        grad = np.zeros(self.length_)
+        if self.length_ == 0:
+            return grad
+        if x <= self.axis1_[0]:
+            grad[0] = 1.0
+        elif x > self.axis1_[-1]:
+            grad[-1] = 1.0
+        else:
+            idx = np.searchsorted(self.axis1_, x, side='left')
+            grad[idx] = 1.0
+        return grad
 
     def gradient_of_integrated_value_wrt_ordinate(self, start_x: float, end_x: float) -> np.ndarray:
-        #TODO
-        pass
+        grad = np.zeros(self.length_)
+        if start_x >= end_x:
+            return grad
+        breakpoints = [start_x]
+        for t in self.axis1_:
+            if start_x < t < end_x:
+                breakpoints.append(t)
+        breakpoints.append(end_x)
+        for i in range(len(breakpoints) - 1):
+            seg_start = breakpoints[i]
+            seg_len = breakpoints[i + 1] - seg_start
+            g = self.gradient_wrt_ordinate(seg_start + 1e-15)
+            grad += g * seg_len
+        return grad
 
 
 
